@@ -2,7 +2,7 @@
 Configuration settings for SEO Analyzer
 """
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 
@@ -39,7 +39,7 @@ class SEOAnalyzerConfig:
     )
     
     # Browser configuration
-    BROWSER_LAUNCH_ARGS: List[str] = [
+    BROWSER_LAUNCH_ARGS: List[str] = field(default_factory=lambda: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
@@ -49,7 +49,7 @@ class SEOAnalyzerConfig:
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
-    ]
+    ])
     
     # Geocoding configuration
     GEOCODING_USER_AGENT: str = os.getenv("SEO_GEOCODING_USER_AGENT", "seo-analyzer")
@@ -67,7 +67,7 @@ class SEOAnalyzerConfig:
     SELECTOR_TIMEOUT: int = int(os.getenv("SEO_SELECTOR_TIMEOUT", "10000"))
     
     # Safety configuration
-    DANGEROUS_NETWORKS: List[str] = [
+    DANGEROUS_NETWORKS: List[str] = field(default_factory=lambda: [
         '169.254.169.254/32',  # AWS/GCP/Azure metadata service
         '127.0.0.0/8',         # Loopback
         '10.0.0.0/8',          # Private class A
@@ -77,7 +77,7 @@ class SEOAnalyzerConfig:
         '::1/128',             # IPv6 loopback
         'fc00::/7',            # IPv6 private
         'fe80::/10',           # IPv6 link-local
-    ]
+    ])
     
     # API Keys (optional)
     BING_MAPS_API_KEY: str = os.getenv("BING_MAPS_API_KEY", "")
@@ -86,41 +86,41 @@ class SEOAnalyzerConfig:
     LOG_LEVEL: str = os.getenv("SEO_LOG_LEVEL", "INFO")
     
     # Performance optimization
-    BLOCK_RESOURCE_TYPES: List[str] = ['image', 'media', 'font', 'stylesheet']
+    BLOCK_RESOURCE_TYPES: List[str] = field(default_factory=lambda: ['image', 'media', 'font', 'stylesheet'])
     
     # Address extraction patterns
-    ADDRESS_PATTERNS: List[str] = [
+    ADDRESS_PATTERNS: List[str] = field(default_factory=lambda: [
         r'\b(calle|carrera|avenida|av|cra|cll|street|st|avenue|ave|road|rd|boulevard|blvd)\b',
         r'\b\d{5}(?:[-\s]\d{4})?\b',  # Postal codes
         r'\w+,\s*\w{2,}',  # City, state patterns
         r'\d+\s+\w+(?:\s+\w+){1,3}',  # Number with street
-    ]
+    ])
     
     # Phone number patterns
-    PHONE_PATTERNS: List[str] = [
+    PHONE_PATTERNS: List[str] = field(default_factory=lambda: [
         r'\+\d{1,3}\s?[\d\s-]{7,15}',  # International format
         r'\(\d{3}\)\s?\d{3}-\d{4}',     # US format (123) 456-7890
         r'\d{3}[-\.\s]?\d{3}[-\.\s]?\d{4}',  # 123-456-7890
         r'\d{2}[-\.\s]?\d{2}[-\.\s]?\d{2}[-\.\s]?\d{2}[-\.\s]?\d{2}'  # European formats
-    ]
+    ])
     
     # Address normalization replacements
-    ADDRESS_REPLACEMENTS: List[tuple] = [
+    ADDRESS_REPLACEMENTS: List[tuple] = field(default_factory=lambda: [
         ('street', 'st'), ('avenue', 'ave'), ('boulevard', 'blvd'),
         ('road', 'rd'), ('drive', 'dr'), ('lane', 'ln'),
         ('suite', 'ste'), ('apartment', 'apt'), ('building', 'bldg'),
         ('calle', 'c'), ('avenida', 'av'), ('carrera', 'cra'),
-    ]
+    ])
     
     # Schema.org business types
-    BUSINESS_SCHEMA_TYPES: List[str] = [
+    BUSINESS_SCHEMA_TYPES: List[str] = field(default_factory=lambda: [
         'LocalBusiness', 'Organization', 'Restaurant', 'Store',
         'Corporation', 'EducationalOrganization', 'GovernmentOrganization',
         'NGO', 'SportsOrganization'
-    ]
+    ])
     
     # CSS selectors for maps
-    GOOGLE_MAPS_SELECTORS: dict = {
+    GOOGLE_MAPS_SELECTORS: dict = field(default_factory=lambda: {
         'feed': 'div[role="feed"]',
         'results': 'div[role="feed"] a[href*="maps/place"]',
         'title': 'div[class*="fontHeadlineSmall"]',
@@ -128,13 +128,13 @@ class SEOAnalyzerConfig:
         'verified': 'img[src*="verified"]',
         'address': 'button[data-item-id="address"]',
         'phone': 'button[data-item-id="phone"]',
-    }
+    })
     
-    BING_MAPS_SELECTORS: dict = {
+    BING_MAPS_SELECTORS: dict = field(default_factory=lambda: {
         'results': '.listViewCard',
         'title': '.b_dataList h2',
         'link': 'a',
-    }
+    })
     
     # Validation settings
     MIN_BUSINESS_NAME_LENGTH: int = 1
