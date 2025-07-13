@@ -102,14 +102,17 @@ class OpenAIClient:
         """
     
     def _get_fallback_response(self, error_message: str) -> Dict[str, Any]:
-        """Generate fallback response in case of API error"""
+        """Generate fallback response in case of API error, with user alert and action steps"""
         return {
             "coherence_score": 0.5,
             "detected_intent": "Unable to analyze",
             "readability_level": "Unknown",
             "suggested_improvements": [
-                f"Error during analysis: {error_message}",
-                "Please check API configuration and try again."
+                f"ALERTA: La respuesta es simulada debido a un error: {error_message}",
+                "Verifique que la API key esté correctamente configurada en el entorno.",
+                "Asegúrese de que su cuenta tenga acceso a la API correspondiente.",
+                "Revise los logs del servidor para más detalles.",
+                "Si el problema persiste, contacte al administrador o abra un ticket en https://github.com/USEOAI/USEOAI_App/issues."
             ]
         }
 
