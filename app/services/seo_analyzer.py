@@ -187,6 +187,23 @@ class SEOAnalyzer:
         # Cache for parsed HTML to avoid re-parsing
         self._html_cache: Dict[str, BeautifulSoup] = {}
         
+        # Locks for thread-safe access to cache per URL
+        self._cache_locks: Dict[str, asyncio.Lock] = {}
+        
+    def _get_cache_lock(self, url: str) -> asyncio.Lock:
+        """
+        Get or create a lock for the given URL to ensure thread-safe cache access.
+        
+        Args:
+            url: URL to get lock for
+            
+        Returns:
+            asyncio.Lock for the URL
+        """
+        if url not in self._cache_locks:
+            self._cache_locks[url] = asyncio.Lock()
+        return self._cache_locks[url]
+        
     async def analyze_site(self, analysis_request: AnalysisRequest) -> AnalysisResponse:
         """
         Main method to analyze a website.
@@ -207,7 +224,9 @@ class SEOAnalyzer:
         # Parse HTML once and cache it
         if self.config.ENABLE_HTML_CACHE:
             soup = BeautifulSoup(html, 'lxml')
-            self._html_cache[url] = soup
+            # Thread-safe cache write using URL-specific lock
+            async with self._get_cache_lock(url):
+                self._html_cache[url] = soup
         
         # Parse HTML using cached soup
         parsed_data = self.scraper.parse_html(html, url)
@@ -409,8 +428,13 @@ class SEOAnalyzer:
                 html_content = await response.text()
                 
                 # Use cached soup if available, otherwise parse
-                if self.config.ENABLE_HTML_CACHE and url in self._html_cache:
-                    soup = self._html_cache[url]
+                if self.config.ENABLE_HTML_CACHE:
+                    # Thread-safe cache read using URL-specific lock
+                    async with self._get_cache_lock(url):
+                        if url in self._html_cache:
+                            soup = self._html_cache[url]
+                        else:
+                            soup = BeautifulSoup(html_content, 'lxml')
                 else:
                     soup = BeautifulSoup(html_content, 'lxml')
                 
@@ -779,14 +803,24 @@ class SEOAnalyzer:
         """
         try:
             # Use cached soup if available
-            if self.config.ENABLE_HTML_CACHE and url in self._html_cache:
-                soup = self._html_cache[url]
+            if self.config.ENABLE_HTML_CACHE:
+                # Thread-safe cache read using URL-specific lock
+                async with self._get_cache_lock(url):
+                    if url in self._html_cache:
+                        soup = self._html_cache[url]
+                    else:
+                        soup = None
             else:
+                soup = None
+                
+            if soup is None:
                 # Fetch the page
                 html, _, _, _ = await self.scraper.fetch_html(url)
                 soup = BeautifulSoup(html, 'lxml')
                 if self.config.ENABLE_HTML_CACHE:
-                    self._html_cache[url] = soup
+                    # Thread-safe cache write using URL-specific lock
+                    async with self._get_cache_lock(url):
+                        self._html_cache[url] = soup
             
             # Try different sources for business name
             
@@ -1271,14 +1305,24 @@ class SEOAnalyzer:
         """
         try:
             # Use cached soup if available
-            if self.config.ENABLE_HTML_CACHE and url in self._html_cache:
-                soup = self._html_cache[url]
+            if self.config.ENABLE_HTML_CACHE:
+                # Thread-safe cache read using URL-specific lock
+                async with self._get_cache_lock(url):
+                    if url in self._html_cache:
+                        soup = self._html_cache[url]
+                    else:
+                        soup = None
             else:
+                soup = None
+                
+            if soup is None:
                 # Fetch and cache the page
                 html, _, _, _ = await self.scraper.fetch_html(url)
                 soup = BeautifulSoup(html, 'lxml')
                 if self.config.ENABLE_HTML_CACHE:
-                    self._html_cache[url] = soup
+                    # Thread-safe cache write using URL-specific lock
+                    async with self._get_cache_lock(url):
+                        self._html_cache[url] = soup
             
             nap = {
                 "name": await self._extract_business_name(url),
