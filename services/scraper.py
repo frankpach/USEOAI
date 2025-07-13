@@ -13,6 +13,7 @@ from pyppeteer.errors import TimeoutError, NetworkError, PageError
 from urllib.parse import urljoin, urlparse, ParseResult
 import aiohttp
 from functools import lru_cache
+from contextlib import asynccontextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +29,8 @@ class BrowserPool:
         self._semaphore = asyncio.Semaphore(max_browsers)
         self._initialization_lock = asyncio.Lock()
         
-    async def get_browser(self) -> Browser:
+    @asynccontextmanager
+    async def get_browser(self):
         """Get an available browser from the pool or create a new one"""
         async with self._semaphore:
             if not self._browsers:
@@ -51,8 +53,15 @@ class BrowserPool:
                             )
                             self._browsers.append(browser)
             
-            # Return the first available browser
-            return self._browsers[0]
+            # Get the first available browser
+            browser = self._browsers[0]
+            try:
+                yield browser
+            finally:
+                # Ensure browser is still available and not closed
+                if browser and not browser.connection.closed:
+                    # Browser is returned to the pool automatically since we're using the same reference
+                    pass
     
     async def close_all(self):
         """Close all browser instances"""
@@ -62,6 +71,20 @@ class BrowserPool:
             except Exception as e:
                 logger.warning(f"Error closing browser: {e}")
         self._browsers = []
+
+    @asynccontextmanager
+    async def get_page(self, browser: Browser):
+        """Get a page from a browser with proper resource management"""
+        page = None
+        try:
+            page = await browser.newPage()
+            yield page
+        finally:
+            if page:
+                try:
+                    await page.close()
+                except Exception as e:
+                    logger.warning(f"Error closing page: {e}")
 
 
 class Scraper:
@@ -238,91 +261,79 @@ class Scraper:
         Returns:
             Tuple of (html_content, headers, status_code, redirections)
         """
-        browser = None
-        page = None
         status_code = 0
         redirections = []
         
         try:
-            # Get browser from pool
-            browser = await self._browser_pool.get_browser()
-            
-            # Create a new page
-            page = await browser.newPage()
-            
-            # Configure page
-            await page.setUserAgent(self.user_agent)
-            await page.setViewport({'width': 1920, 'height': 1080})
-            
-            # Set request interception for improved performance and redirect tracking
-            await page.setRequestInterception(True)
-            
-            # Track redirects and block unnecessary resources
-            redirects = []
-            
-            async def intercept_request(request):
-                # Track potential redirections
-                if request.isNavigationRequest() and request.redirectChain():
-                    for redirect in request.redirectChain():
-                        redirect_url = redirect.url
-                        if redirect_url not in redirects:
-                            redirects.append(redirect_url)
-                
-                # Block unnecessary resources to speed up loading
-                if request.resourceType in ['image', 'media', 'font', 'websocket']:
-                    await request.abort()
-                else:
-                    await request.continue_()
-            
-            page.on('request', intercept_request)
-            
-            # Set timeout
-            page_timeout = self.timeout * 1000  # Convert to ms
-            
-            # Navigate with timeout
-            response = await page.goto(url, {
-                'waitUntil': 'networkidle2',
-                'timeout': page_timeout
-            })
-            
-            # Extract headers and status
-            headers = {}
-            if response:
-                headers = await response.allHeaders()
-                status_code = response.status
-            else:
-                logger.warning("No response object returned by Puppeteer")
-                
-            # Wait for body content
-            try:
-                await page.waitForSelector('body', {'timeout': 3000})
-            except Exception as e:
-                logger.warning(f"No body selector visible: {e}")
-                
-            # Wait a bit for any final JS execution
-            await asyncio.sleep(1)
-                
-            # Get the HTML content
-            html_content = await page.content()
-            
-            # Handle potential CAPTCHA (simple detection)
-            if self._is_captcha_page(html_content):
-                logger.warning("CAPTCHA detected, attempting bypass")
-                html_content = await self._try_captcha_bypass(page, html_content)
-                
-            return html_content, headers, status_code, redirects
-            
+            # Get browser from pool using context manager
+            async with self._browser_pool.get_browser() as browser:
+                # Get page using context manager
+                async with self._browser_pool.get_page(browser) as page:
+                    # Configure page
+                    await page.setUserAgent(self.user_agent)
+                    await page.setViewport({'width': 1920, 'height': 1080})
+                    
+                    # Set request interception for improved performance and redirect tracking
+                    await page.setRequestInterception(True)
+                    
+                    # Track redirects and block unnecessary resources
+                    redirects = []
+                    
+                    async def intercept_request(request):
+                        # Track potential redirections
+                        if request.isNavigationRequest() and request.redirectChain():
+                            for redirect in request.redirectChain():
+                                redirect_url = redirect.url
+                                if redirect_url not in redirects:
+                                    redirects.append(redirect_url)
+                        
+                        # Block unnecessary resources to speed up loading
+                        if request.resourceType in ['image', 'media', 'font', 'websocket']:
+                            await request.abort()
+                        else:
+                            await request.continue_()
+                    
+                    page.on('request', intercept_request)
+                    
+                    # Set timeout
+                    page_timeout = self.timeout * 1000  # Convert to ms
+                    
+                    # Navigate with timeout
+                    response = await page.goto(url, {
+                        'waitUntil': 'networkidle2',
+                        'timeout': page_timeout
+                    })
+                    
+                    # Extract headers and status
+                    headers = {}
+                    if response:
+                        headers = await response.allHeaders()
+                        status_code = response.status
+                    else:
+                        logger.warning("No response object returned by Puppeteer")
+                        
+                    # Wait for body content
+                    try:
+                        await page.waitForSelector('body', {'timeout': 3000})
+                    except Exception as e:
+                        logger.warning(f"No body selector visible: {e}")
+                        
+                    # Wait a bit for any final JS execution
+                    await asyncio.sleep(1)
+                        
+                    # Get the HTML content
+                    html_content = await page.content()
+                    
+                    # Handle potential CAPTCHA (simple detection)
+                    if self._is_captcha_page(html_content):
+                        logger.warning("CAPTCHA detected, attempting bypass")
+                        html_content = await self._try_captcha_bypass(page, html_content)
+                        
+                    return html_content, headers, status_code, redirects
+                    
         except (TimeoutError, NetworkError, PageError) as e:
             logger.error(f"Puppeteer error: {e}")
             return "", {}, 0, redirections
-            
-        finally:
-            # Clean up
-            if page:
-                try:
-                    await page.close()
-                except Exception as e:
-                    logger.warning(f"Error closing page: {e}")
     
     def _is_captcha_page(self, html_content: str) -> bool:
         """Check if the page contains a CAPTCHA"""

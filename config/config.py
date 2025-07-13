@@ -2,11 +2,9 @@
 Configuration settings for SEO Analyzer
 """
 import os
-from dataclasses import dataclass
 from typing import List
 
 
-@dataclass
 class SEOAnalyzerConfig:
     """Configuration constants for SEO Analyzer"""
     
@@ -49,7 +47,227 @@ class SEOAnalyzerConfig:
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
+        '--disable-field-trial-config',
+        '--disable-ipc-flooding-protection',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-background-networking',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--disable-translate',
+        '--disable-logging',
+        '--disable-permissions-api',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-features=BlinkGenPropertyTrees',
+        '--disable-component-update',
+        '--disable-domain-reliability',
+        '--disable-dev-shm-usage',
+        '--disable-features=AutofillServerCommunication',
+        '--disable-features=CertificateTransparencyComponentUpdater',
+        '--disable-features=OptimizationHints',
+        '--disable-features=Translate',
+        '--disable-hang-monitor',
+        '--disable-popup-blocking',
+        '--disable-prompt-on-repost',
+        '--disable-client-side-phishing-detection',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=ScriptStreaming',
+        '--disable-features=V8VmFuture',
+        '--disable-features=VizDisplayCompositor',
     ]
+    
+    # HTTP configuration
+    HTTP_TIMEOUT: int = int(os.getenv("SEO_HTTP_TIMEOUT", "10"))
+    
+    # Browser specific timeouts
+    BROWSER_TIMEOUT: int = int(os.getenv("SEO_BROWSER_TIMEOUT", "20000"))
+    SELECTOR_TIMEOUT: int = int(os.getenv("SEO_SELECTOR_TIMEOUT", "10000"))
+    
+    # External APIs
+    BING_MAPS_API_KEY: str = os.getenv("BING_MAPS_API_KEY", "")
+    
+    # Geocoding configuration
+    GEOCODING_USER_AGENT: str = os.getenv(
+        "SEO_GEOCODING_USER_AGENT",
+        "SEO Analyzer Geocoding Client"
+    )
+    
+    # Threading configuration
+    THREAD_POOL_MAX_WORKERS: int = int(os.getenv("SEO_THREAD_POOL_MAX_WORKERS", "10"))
+    
+    # Feature flags
+    ENABLE_HTML_CACHE: bool = os.getenv("SEO_ENABLE_HTML_CACHE", "true").lower() == "true"
+    ENABLE_BROKEN_LINKS_CHECK: bool = os.getenv("SEO_ENABLE_BROKEN_LINKS_CHECK", "true").lower() == "true"
+    ENABLE_PERFORMANCE_CHECK: bool = os.getenv("SEO_ENABLE_PERFORMANCE_CHECK", "true").lower() == "true"
+    ENABLE_GOOGLE_MAPS_CHECK: bool = os.getenv("SEO_ENABLE_GOOGLE_MAPS_CHECK", "true").lower() == "true"
+    ENABLE_BING_MAPS_CHECK: bool = os.getenv("SEO_ENABLE_BING_MAPS_CHECK", "true").lower() == "true"
+    
+    # Log level
+    LOG_LEVEL: str = os.getenv("SEO_LOG_LEVEL", "INFO")
+    
+    # Resource blocking for performance
+    BLOCK_RESOURCE_TYPES: List[str] = ['image', 'media', 'font', 'stylesheet']
+    
+    # Dangerous networks (for SSRF protection)
+    DANGEROUS_NETWORKS: List[str] = [
+        "127.0.0.0/8",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",
+        "0.0.0.0/8"
+    ]
+    
+    # Business schema types
+    BUSINESS_SCHEMA_TYPES: List[str] = [
+        "LocalBusiness",
+        "Organization",
+        "Corporation",
+        "EducationalOrganization",
+        "GovernmentOrganization",
+        "NGO",
+        "Restaurant",
+        "Store",
+        "AutoDealer",
+        "Hospital",
+        "Hotel",
+        "TouristAttraction",
+        "Museum",
+        "Library",
+        "School",
+        "University",
+        "CollegeOrUniversity",
+        "HighSchool",
+        "MiddleSchool",
+        "ElementarySchool",
+        "Preschool",
+        "Dentist",
+        "Physician",
+        "MedicalOrganization",
+        "Pharmacy",
+        "VeterinaryCare",
+        "AnimalShelter",
+        "AutomotiveBusiness",
+        "FoodEstablishment",
+        "FastFoodRestaurant",
+        "IceCreamShop",
+        "Winery",
+        "Brewery",
+        "Distillery",
+        "EntertainmentBusiness",
+        "MovieTheater",
+        "ComedyClub",
+        "DanceGroup",
+        "MusicGroup",
+        "TheaterGroup",
+        "PerformingGroup",
+        "SportsOrganization",
+        "SportsTeam",
+        "HealthAndBeautyBusiness",
+        "BeautySalon",
+        "DaySpa",
+        "HairSalon",
+        "HealthClub",
+        "NailSalon",
+        "TattooParlor",
+        "HomeAndConstructionBusiness",
+        "Electrician",
+        "GeneralContractor",
+        "HVACBusiness",
+        "Locksmith",
+        "MovingCompany",
+        "Plumber",
+        "RoofingContractor",
+        "ProfessionalService",
+        "AccountingService",
+        "Attorney",
+        "Notary",
+        "RealEstateAgent",
+        "TaxService",
+        "FinancialService",
+        "BankOrCreditUnion",
+        "InsuranceAgency",
+        "LodgingBusiness",
+        "BedAndBreakfast",
+        "Campground",
+        "Hostel",
+        "Motel",
+        "Resort",
+        "SelfStorage",
+        "TravelAgency",
+        "EmergencyService",
+        "FireStation",
+        "Hospital",
+        "PoliceStation",
+        "RadioStation",
+        "TelevisionStation",
+        "GovernmentOffice",
+        "PostOffice",
+        "CivicStructure",
+        "Airport",
+        "Aquarium",
+        "Beach",
+        "BusStation",
+        "BusStop",
+        "Campground",
+        "Cemetery",
+        "Crematorium",
+        "EventVenue",
+        "FireStation",
+        "GovernmentBuilding",
+        "Hospital",
+        "MovieTheater",
+        "Museum",
+        "MusicVenue",
+        "Park",
+        "ParkingFacility",
+        "PerformingArtsTheater",
+        "PlaceOfWorship",
+        "Playground",
+        "PoliceStation",
+        "PublicSwimmingPool",
+        "RVPark",
+        "StadiumOrArena",
+        "SubwayStation",
+        "TaxiStand",
+        "TrainStation",
+        "Zoo"
+    ]
+    
+    # Google Maps selectors
+    GOOGLE_MAPS_SELECTORS: dict = {
+        'feed': 'div[role="feed"]',
+        'result_item': 'div[role="feed"] > div',
+        'result_link': 'a[href*="maps/place"]',
+        'result_title': 'div[class*="fontHeadlineSmall"]',
+        'page_title': 'h1[data-attrid="title"]',
+        'verified_badge': 'img[src*="verified"]',
+        'address': 'button[data-item-id="address"]',
+        'phone': 'button[data-item-id="phone"]'
+    }
+    
+    # Bing Maps selectors
+    BING_MAPS_SELECTORS: dict = {
+        'results': '.listViewCard',
+        'result_title': '.b_dataList h2',
+        'result_link': '.listViewCard a'
+    }
+    
+    # Address extraction configuration
+    MIN_ADDRESS_LENGTH: int = 20
+    MAX_ADDRESS_LENGTH: int = 300
+    
+    @classmethod
+    def get_instance(cls):
+        """Get singleton instance of config"""
+        if not hasattr(cls, '_instance'):
+            cls._instance = cls()
+        return cls._instance
     
     # Geocoding configuration
     GEOCODING_USER_AGENT: str = os.getenv("SEO_GEOCODING_USER_AGENT", "seo-analyzer")

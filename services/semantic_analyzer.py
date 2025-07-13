@@ -4,8 +4,8 @@ from typing import Dict, List, Optional, Any
 import json
 import asyncio
 
-from app.utils.llm_clients import OpenAIClient, AnthropicClient, GeminiClient
-from app.models.semantic_models import (
+from utils.llm_clients import OpenAIClient, AnthropicClient, GeminiClient
+from models.semantic_models import (
     SemanticAnalysisRequest,
     SemanticAnalysisResponse
 )

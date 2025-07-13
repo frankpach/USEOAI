@@ -21,9 +21,9 @@ import time
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
-from app.services.scraper import Scraper
-from app.models.seo_models import AnalysisRequest, AnalysisResponse
-from app.services.semantic_analyzer import SemanticAnalyzer
+from services.scraper import Scraper
+from models.seo_models import AnalysisRequest, AnalysisResponse
+from services.semantic_analyzer import SemanticAnalyzer
 from config.config import SEOAnalyzerConfig
 
 # Configure logging
@@ -110,6 +110,20 @@ class BrowserPool:
                 # Return browser to pool if still open
                 if browser and not browser.connection.closed:
                     self.browsers.append(browser)
+    
+    @asynccontextmanager
+    async def get_page(self, browser):
+        """Get a page from a browser with proper resource management"""
+        page = None
+        try:
+            page = await browser.newPage()
+            yield page
+        finally:
+            if page:
+                try:
+                    await page.close()
+                except Exception as e:
+                    logger.warning(f"Error closing page: {e}")
     
     async def close(self):
         """Close all browsers in the pool"""
@@ -888,126 +902,125 @@ class SEOAnalyzer:
             
             async with self.browser_pool.get_browser() as browser:
                 # Create a new page with proper resource management
-                page = await browser.newPage()
-                
-                try:
-                    # Set user agent
-                    await page.setUserAgent(self.user_agent)
-                    
-                    # Enable request interception to block unnecessary resources
-                    await page.setRequestInterception(True)
-                    
-                    async def intercept_request(request):
-                        # Block unnecessary resources for performance
-                        if request.resourceType in self.config.BLOCK_RESOURCE_TYPES:
-                            await request.abort()
-                        else:
-                            await request.continue_()
-                    
-                    page.on('request', intercept_request)
-                    
-                    for i, (lat, lon) in enumerate(sample_points):
-                        # Prepare search query
-                        search_query = business_name.replace(' ', '+')
+                async with self.browser_pool.get_page(browser) as page:
+                    try:
+                        # Set user agent
+                        await page.setUserAgent(self.user_agent)
                         
-                        # Open Google Maps with geolocation
-                        maps_url = f"https://www.google.com/maps/search/{search_query}/@{lat},{lon},15z"
+                        # Enable request interception to block unnecessary resources
+                        await page.setRequestInterception(True)
                         
-                        logger.info(f"Checking Google Maps at point {i+1}/{len(sample_points)}: {lat}, {lon}")
+                        async def intercept_request(request):
+                            # Block unnecessary resources for performance
+                            if request.resourceType in self.config.BLOCK_RESOURCE_TYPES:
+                                await request.abort()
+                            else:
+                                await request.continue_()
                         
-                        try:
-                            # Navigate to Google Maps
-                            await page.goto(maps_url, {'timeout': self.config.BROWSER_TIMEOUT})
+                        page.on('request', intercept_request)
+                        
+                        for i, (lat, lon) in enumerate(sample_points):
+                            # Prepare search query
+                            search_query = business_name.replace(' ', '+')
                             
-                            # Wait for results to load
-                            await asyncio.sleep(3)
-                            await page.waitForSelector(
-                                self.config.GOOGLE_MAPS_SELECTORS['feed'], 
-                                {'timeout': self.config.SELECTOR_TIMEOUT}
-                            )
+                            # Open Google Maps with geolocation
+                            maps_url = f"https://www.google.com/maps/search/{search_query}/@{lat},{lon},15z"
                             
-                            # Extract results
-                            results = await page.evaluate('''
-                            () => {
-                                const results = [];
-                                const items = document.querySelectorAll('div[role="feed"] a[href*="maps/place"]');
-                                for (let i = 0; i < Math.min(items.length, 15); i++) {
-                                    const item = items[i];
-                                    const titleElement = item.querySelector('div[class*="fontHeadlineSmall"]');
-                                    if (titleElement) {
-                                        results.push({
-                                            title: titleElement.textContent || '',
-                                            position: i + 1,
-                                            url: item.href || ''
-                                        });
-                                    }
-                                }
-                                return results;
-                            }
-                            ''')
+                            logger.info(f"Checking Google Maps at point {i+1}/{len(sample_points)}: {lat}, {lon}")
                             
-                            # Find our domain or business name in results
-                            found = False
-                            for result in results:
-                                if not result.get('title'):
-                                    continue
-                                    
-                                result_title = result['title'].lower()
-                                if domain.lower() in result_title or business_name.lower() in result_title:
-                                    found = True
-                                    ranks.append(result['position'])
-                                    
-                                    # If first check, try to get more info about the listing
-                                    if i == 0:
-                                        try:
-                                            # Click on result to get more info
-                                            await page.click(f'div[role="feed"] a[href*="maps/place"]:nth-child({result["position"]})')
-                                            await page.waitForSelector(
-                                                self.config.GOOGLE_MAPS_SELECTORS['page_title'], 
-                                                {'timeout': 5000}
-                                            )
-                                            
-                                            # Extract profile data
-                                            profile_data = await page.evaluate('''
-                                            () => {
-                                                const data = {};
-                                                const titleElement = document.querySelector('h1[data-attrid="title"]');
-                                                data.title = titleElement ? titleElement.textContent : '';
-                                                
-                                                // Check for verification
-                                                const verified = document.querySelector('img[src*="verified"]');
-                                                data.verified = !!verified;
-                                                
-                                                // Get address
-                                                const addressElement = document.querySelector('button[data-item-id="address"]');
-                                                data.address = addressElement ? addressElement.textContent : '';
-                                                
-                                                // Get phone
-                                                const phoneElement = document.querySelector('button[data-item-id="phone"]');
-                                                data.phone = phoneElement ? phoneElement.textContent : '';
-                                                
-                                                return data;
-                                            }
-                                            ''')
-                                            
-                                            is_verified = profile_data.get('verified', False)
-                                            
-                                        except Exception as e:
-                                            logger.warning(f"Error getting profile data: {e}")
-                                    break
-                            
-                            if found:
-                                found_count += 1
+                            try:
+                                # Navigate to Google Maps
+                                await page.goto(maps_url, {'timeout': self.config.BROWSER_TIMEOUT})
                                 
-                        except Exception as e:
-                            logger.warning(f"Error checking Google Maps at point {i+1}: {e}")
+                                # Wait for results to load
+                                await asyncio.sleep(3)
+                                await page.waitForSelector(
+                                    self.config.GOOGLE_MAPS_SELECTORS['feed'], 
+                                    {'timeout': self.config.SELECTOR_TIMEOUT}
+                                )
+                                
+                                # Extract results
+                                results = await page.evaluate('''
+                                () => {
+                                    const results = [];
+                                    const items = document.querySelectorAll('div[role="feed"] a[href*="maps/place"]');
+                                    for (let i = 0; i < Math.min(items.length, 15); i++) {
+                                        const item = items[i];
+                                        const titleElement = item.querySelector('div[class*="fontHeadlineSmall"]');
+                                        if (titleElement) {
+                                            results.push({
+                                                title: titleElement.textContent || '',
+                                                position: i + 1,
+                                                url: item.href || ''
+                                            });
+                                        }
+                                    }
+                                    return results;
+                                }
+                                ''')
+                                
+                                # Find our domain or business name in results
+                                found = False
+                                for result in results:
+                                    if not result.get('title'):
+                                        continue
+                                        
+                                    result_title = result['title'].lower()
+                                    if domain.lower() in result_title or business_name.lower() in result_title:
+                                        found = True
+                                        ranks.append(result['position'])
+                                        
+                                        # If first check, try to get more info about the listing
+                                        if i == 0:
+                                            try:
+                                                # Click on result to get more info
+                                                await page.click(f'div[role="feed"] a[href*="maps/place"]:nth-child({result["position"]})')
+                                                await page.waitForSelector(
+                                                    self.config.GOOGLE_MAPS_SELECTORS['page_title'], 
+                                                    {'timeout': 5000}
+                                                )
+                                                
+                                                # Extract profile data
+                                                profile_data = await page.evaluate('''
+                                                () => {
+                                                    const data = {};
+                                                    const titleElement = document.querySelector('h1[data-attrid="title"]');
+                                                    data.title = titleElement ? titleElement.textContent : '';
+                                                    
+                                                    // Check for verification
+                                                    const verified = document.querySelector('img[src*="verified"]');
+                                                    data.verified = !!verified;
+                                                    
+                                                    // Get address
+                                                    const addressElement = document.querySelector('button[data-item-id="address"]');
+                                                    data.address = addressElement ? addressElement.textContent : '';
+                                                    
+                                                    // Get phone
+                                                    const phoneElement = document.querySelector('button[data-item-id="phone"]');
+                                                    data.phone = phoneElement ? phoneElement.textContent : '';
+                                                    
+                                                    return data;
+                                                }
+                                                ''')
+                                                
+                                                is_verified = profile_data.get('verified', False)
+                                                
+                                            except Exception as e:
+                                                logger.warning(f"Error getting profile data: {e}")
+                                        break
+                                
+                                if found:
+                                    found_count += 1
+                                    
+                            except Exception as e:
+                                logger.warning(f"Error checking Google Maps at point {i+1}: {e}")
+                                
+                            # Add delay between requests to avoid detection
+                            await asyncio.sleep(self.config.REQUEST_DELAY)
                             
-                        # Add delay between requests to avoid detection
-                        await asyncio.sleep(self.config.REQUEST_DELAY)
-                        
-                finally:
-                    # Always close the page
-                    await page.close()
+                    except Exception as e:
+                        logger.error(f"Error in Google Maps page operations: {e}")
+                        return self._get_default_google_maps_result()
                 
         except Exception as e:
             logger.error(f"Error in Google Maps check: {e}")
@@ -1118,79 +1131,79 @@ class SEOAnalyzer:
             sample_points = geo_points[:min(3, len(geo_points))]
             
             async with self.browser_pool.get_browser() as browser:
-                page = await browser.newPage()
-                
-                try:
-                    # Set user agent
-                    await page.setUserAgent(self.user_agent)
-                    
-                    # Enable request interception
-                    await page.setRequestInterception(True)
-                    
-                    async def intercept_request(request):
-                        if request.resourceType in self.config.BLOCK_RESOURCE_TYPES:
-                            await request.abort()
-                        else:
-                            await request.continue_()
-                    
-                    page.on('request', intercept_request)
-                    
-                    for i, (lat, lon) in enumerate(sample_points):
-                        search_query = business_name.replace(' ', '+')
-                        maps_url = f"https://www.bing.com/maps?q={search_query}&cp={lat}~{lon}"
+                async with self.browser_pool.get_page(browser) as page:
+                    try:
+                        # Set user agent
+                        await page.setUserAgent(self.user_agent)
                         
-                        logger.info(f"Checking Bing Maps at point {i+1}/{len(sample_points)}: {lat}, {lon}")
+                        # Enable request interception
+                        await page.setRequestInterception(True)
                         
-                        try:
-                            await page.goto(maps_url, {'timeout': self.config.BROWSER_TIMEOUT})
-                            await asyncio.sleep(3)
-                            await page.waitForSelector(
-                                self.config.BING_MAPS_SELECTORS['results'], 
-                                {'timeout': self.config.SELECTOR_TIMEOUT}
-                            )
+                        async def intercept_request(request):
+                            if request.resourceType in self.config.BLOCK_RESOURCE_TYPES:
+                                await request.abort()
+                            else:
+                                await request.continue_()
+                        
+                        page.on('request', intercept_request)
+                        
+                        for i, (lat, lon) in enumerate(sample_points):
+                            search_query = business_name.replace(' ', '+')
+                            maps_url = f"https://www.bing.com/maps?q={search_query}&cp={lat}~{lon}"
                             
-                            # Extract results
-                            results = await page.evaluate('''
-                            () => {
-                                const results = [];
-                                const items = document.querySelectorAll('.listViewCard');
-                                for (let i = 0; i < Math.min(items.length, 15); i++) {
-                                    const item = items[i];
-                                    const titleElement = item.querySelector('.b_dataList h2');
-                                    if (titleElement) {
-                                        results.push({
-                                            title: titleElement.textContent || '',
-                                            position: i + 1,
-                                            url: item.querySelector('a')?.href || ''
-                                        });
-                                    }
-                                }
-                                return results;
-                            }
-                            ''')
+                            logger.info(f"Checking Bing Maps at point {i+1}/{len(sample_points)}: {lat}, {lon}")
                             
-                            # Find our domain or business name in results
-                            found = False
-                            for result in results:
-                                if not result.get('title'):
-                                    continue
-                                    
-                                result_title = result['title'].lower()
-                                if domain.lower() in result_title or business_name.lower() in result_title:
-                                    found = True
-                                    ranks.append(result['position'])
-                                    break
-                                    
-                            if found:
-                                found_count += 1
+                            try:
+                                await page.goto(maps_url, {'timeout': self.config.BROWSER_TIMEOUT})
+                                await asyncio.sleep(3)
+                                await page.waitForSelector(
+                                    self.config.BING_MAPS_SELECTORS['results'], 
+                                    {'timeout': self.config.SELECTOR_TIMEOUT}
+                                )
                                 
-                        except Exception as e:
-                            logger.warning(f"Error checking Bing Maps at point {i+1}: {e}")
+                                # Extract results
+                                results = await page.evaluate('''
+                                () => {
+                                    const results = [];
+                                    const items = document.querySelectorAll('.listViewCard');
+                                    for (let i = 0; i < Math.min(items.length, 15); i++) {
+                                        const item = items[i];
+                                        const titleElement = item.querySelector('.b_dataList h2');
+                                        if (titleElement) {
+                                            results.push({
+                                                title: titleElement.textContent || '',
+                                                position: i + 1,
+                                                url: item.querySelector('a')?.href || ''
+                                            });
+                                        }
+                                    }
+                                    return results;
+                                }
+                                ''')
+                                
+                                # Find our domain or business name in results
+                                found = False
+                                for result in results:
+                                    if not result.get('title'):
+                                        continue
+                                        
+                                    result_title = result['title'].lower()
+                                    if domain.lower() in result_title or business_name.lower() in result_title:
+                                        found = True
+                                        ranks.append(result['position'])
+                                        break
+                                        
+                                if found:
+                                    found_count += 1
+                                    
+                            except Exception as e:
+                                logger.warning(f"Error checking Bing Maps at point {i+1}: {e}")
+                                
+                            await asyncio.sleep(self.config.REQUEST_DELAY)
                             
-                        await asyncio.sleep(self.config.REQUEST_DELAY)
-                        
-                finally:
-                    await page.close()
+                    except Exception as e:
+                        logger.error(f"Error in Bing Maps page operations: {e}")
+                        return self._get_default_bing_maps_result()
                 
         except Exception as e:
             logger.error(f"Error in Bing Maps scraping: {e}")

@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from app.services.scraper import Scraper
-from app.services.seo_analyzer import SEOAnalyzer
-from app.services.semantic_analyzer import SemanticAnalyzer
-from app.models.seo_models import AnalysisRequest
+from services.scraper import Scraper
+from services.seo_analyzer import SEOAnalyzer
+from services.semantic_analyzer import SemanticAnalyzer
+from models.seo_models import AnalysisRequest
 from bs4 import BeautifulSoup
 
 
@@ -31,7 +31,7 @@ class TestScraper:
         
         # Mock _needs_puppeteer to return False
         with patch.object(scraper, '_needs_puppeteer', return_value=False):
-            html, headers, status_code, redirections = scraper.fetch_html("https://example.com")
+            html, headers, status_code, redirections = asyncio.run(scraper.fetch_html("https://example.com"))
             
         assert "Test Page" in html
         assert headers == {"Content-Type": "text/html"}
@@ -60,7 +60,7 @@ class TestScraper:
         
         # Mock _needs_puppeteer to return True
         with patch.object(scraper, '_needs_puppeteer', return_value=True):
-            html, headers, status_code, redirections = scraper.fetch_html("https://example.com")
+            html, headers, status_code, redirections = asyncio.run(scraper.fetch_html("https://example.com"))
             
         assert "Dynamic Page" in html
         assert mock_run.called
@@ -70,10 +70,10 @@ class TestScraper:
         scraper = Scraper()
         
         # Test empty HTML
-        assert scraper._needs_puppeteer("")
+        assert scraper._needs_puppeteer("", "https://example.com")
         
         # Test page with no title
-        assert scraper._needs_puppeteer("<html><body>Content</body></html>")
+        assert scraper._needs_puppeteer("<html><body>Content</body></html>", "https://example.com")
         
         # Test SPA-like page
         spa_html = """
@@ -87,20 +87,34 @@ class TestScraper:
             </body>
         </html>
         """
-        assert scraper._needs_puppeteer(spa_html)
+        assert scraper._needs_puppeteer(spa_html, "https://example.com")
         
         # Test normal HTML page
         normal_html = """
         <html>
-            <head><title>Normal Page</title></head>
+            <head><title>Normal Page With A Very Long Title To Make Sure It's Longer Than Expected</title></head>
             <body>
                 <h1>Hello World</h1>
-                <p>This is a normal page.</p>
+                <p>This is a normal page with sufficient content to pass the length check.</p>
+                <p>Here's another paragraph to make sure we have enough content.</p>
+                <p>And yet another paragraph with some more text to ensure the content is long enough.</p>
+                <div class="content">
+                    <h2>Section Title</h2>
+                    <p>More content in this section to make it realistic.</p>
+                    <ul>
+                        <li>List item 1</li>
+                        <li>List item 2</li>
+                        <li>List item 3</li>
+                    </ul>
+                </div>
                 <img src="image.jpg" alt="Image">
+                <footer>
+                    <p>Footer content goes here with additional text.</p>
+                </footer>
             </body>
         </html>
         """
-        assert not scraper._needs_puppeteer(normal_html)
+        assert not scraper._needs_puppeteer(normal_html, "https://example.com")
         
     def test_parse_html(self):
         """Test HTML parsing"""
@@ -125,7 +139,7 @@ class TestScraper:
         """
         
         scraper = Scraper()
-        result = scraper.parse_html(html)
+        result = scraper.parse_html(html, "https://example.com")
         
         assert result["title"]["text"] == "Test Page"
         assert result["meta_description"]["text"] == "Test description"
@@ -147,8 +161,8 @@ class TestSEOAnalyzer:
         """Create SEOAnalyzer instance"""
         return SEOAnalyzer()
     
-    @patch('app.services.seo_analyzer.Scraper')
-    @patch('app.services.seo_analyzer.SemanticAnalyzer')
+    @patch('services.seo_analyzer.Scraper')
+    @patch('services.seo_analyzer.SemanticAnalyzer')
     async def test_analyze_site(self, mock_semantic_analyzer, mock_scraper, seo_analyzer):
         """Test the main analyze_site method"""
         # Mock scraper
@@ -233,7 +247,7 @@ class TestSemanticAnalyzer:
         """Create SemanticAnalyzer instance"""
         return SemanticAnalyzer()
     
-    @patch('app.services.semantic_analyzer.OpenAIClient')
+    @patch('services.semantic_analyzer.OpenAIClient')
     async def test_analyze_semantics_openai(self, mock_openai, semantic_analyzer):
         """Test semantic analysis with OpenAI"""
         # Mock OpenAI client
@@ -275,7 +289,7 @@ class TestSemanticAnalyzer:
         assert result["readability_level"] == "B2"
         assert len(result["suggested_improvements"]) == 2
         
-    @patch('app.services.semantic_analyzer.AnthropicClient')
+    @patch('services.semantic_analyzer.AnthropicClient')
     async def test_analyze_semantics_claude(self, mock_anthropic, semantic_analyzer):
         """Test semantic analysis with Claude"""
         # Mock Anthropic client
@@ -317,7 +331,7 @@ class TestSemanticAnalyzer:
         assert result["readability_level"] == "B1"
         assert len(result["suggested_improvements"]) == 2
         
-    @patch('app.services.semantic_analyzer.GeminiClient')
+    @patch('services.semantic_analyzer.GeminiClient')
     async def test_analyze_semantics_gemini(self, mock_gemini, semantic_analyzer):
         """Test semantic analysis with Gemini"""
         # Mock Gemini client
