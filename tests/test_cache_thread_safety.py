@@ -234,3 +234,39 @@ class TestSEOAnalyzerCacheThreadSafety:
         cached_soup = seo_analyzer._html_cache[url]
         assert cached_soup is not None
         assert cached_soup.title.string == "Test"
+    
+    def test_cache_cleanup(self, seo_analyzer):
+        """Test that cache cleanup removes locks for URLs not in cache"""
+        # Create some URLs and locks
+        urls = ["https://example1.com", "https://example2.com", "https://example3.com"]
+        
+        # Add locks for all URLs
+        for url in urls:
+            seo_analyzer._get_cache_lock(url)
+        
+        # Add cache entries for only some URLs
+        from bs4 import BeautifulSoup
+        soup1 = BeautifulSoup("<html><title>Test1</title></html>", 'lxml')
+        soup2 = BeautifulSoup("<html><title>Test2</title></html>", 'lxml')
+        
+        seo_analyzer._html_cache[urls[0]] = soup1
+        seo_analyzer._html_cache[urls[1]] = soup2
+        # urls[2] is not in cache
+        
+        # Should have 3 locks initially
+        assert len(seo_analyzer._cache_locks) == 3
+        
+        # Run cleanup
+        seo_analyzer._cleanup_cache_locks(max_locks=10)
+        
+        # Should still have 3 locks since we're under the limit
+        assert len(seo_analyzer._cache_locks) == 3
+        
+        # Run cleanup with lower limit
+        seo_analyzer._cleanup_cache_locks(max_locks=2)
+        
+        # Should remove the lock for the URL not in cache
+        assert len(seo_analyzer._cache_locks) == 2
+        assert urls[2] not in seo_analyzer._cache_locks
+        assert urls[0] in seo_analyzer._cache_locks
+        assert urls[1] in seo_analyzer._cache_locks

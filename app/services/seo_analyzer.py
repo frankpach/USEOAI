@@ -203,6 +203,24 @@ class SEOAnalyzer:
         if url not in self._cache_locks:
             self._cache_locks[url] = asyncio.Lock()
         return self._cache_locks[url]
+    
+    def _cleanup_cache_locks(self, max_locks: int = 100):
+        """
+        Clean up cache locks to prevent memory leaks.
+        Removes locks for URLs that are no longer in the cache.
+        
+        Args:
+            max_locks: Maximum number of locks to keep
+        """
+        if len(self._cache_locks) > max_locks:
+            # Remove locks for URLs no longer in cache
+            urls_to_remove = []
+            for url in self._cache_locks:
+                if url not in self._html_cache:
+                    urls_to_remove.append(url)
+            
+            for url in urls_to_remove:
+                del self._cache_locks[url]
         
     async def analyze_site(self, analysis_request: AnalysisRequest) -> AnalysisResponse:
         """
@@ -280,6 +298,10 @@ class SEOAnalyzer:
         
         # Generate recommendations
         recommendations = self._generate_recommendations(parsed_data, speed_metrics, local_rank)
+        
+        # Clean up cache locks occasionally to prevent memory leaks
+        if len(self._cache_locks) > self.config.MAX_CACHE_SIZE:
+            self._cleanup_cache_locks(self.config.MAX_CACHE_SIZE)
         
         # Construct response
         return AnalysisResponse(
