@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import patch, MagicMock
+import asyncio
+from unittest.mock import patch, MagicMock, AsyncMock
 from services.scraper import Scraper
 from services.seo_analyzer import SEOAnalyzer
 from services.semantic_analyzer import SemanticAnalyzer
@@ -16,7 +17,7 @@ class TestScraper:
         assert scraper.timeout == 20
         assert "Mozilla" in scraper.user_agent
         
-    @patch('app.services.scraper.requests.get')
+    @patch('services.scraper.requests.get')
     def test_fetch_html_with_requests(self, mock_get):
         """Test fetching HTML with requests"""
         # Mock response
@@ -38,9 +39,9 @@ class TestScraper:
         assert status_code == 200
         assert redirections == []
         
-    @patch('app.services.scraper.requests.get')
-    @patch('app.services.scraper.asyncio.run')
-    def test_fetch_html_with_puppeteer_fallback(self, mock_run, mock_get):
+    @patch('services.scraper.requests.get')
+    @patch('services.scraper.launch')
+    def test_fetch_html_with_puppeteer_fallback(self, mock_launch, mock_get):
         """Test fetching HTML with Puppeteer fallback"""
         # Mock requests response
         mock_response = MagicMock()
@@ -50,11 +51,14 @@ class TestScraper:
         mock_response.history = []
         mock_get.return_value = mock_response
         
-        # Mock Puppeteer response
-        mock_run.return_value = (
-            "<html><title>Dynamic Page</title><body><div id='app'>Content</div></body></html>",
-            {"Content-Type": "text/html"}
-        )
+        # Mock browser and page (async)
+        mock_browser = AsyncMock()
+        mock_page = AsyncMock()
+        mock_browser.newPage.return_value = mock_page
+        mock_page.goto.return_value = AsyncMock()
+        mock_page.content.return_value = "<html><title>Dynamic Page</title><body><div id='app'>Content</div></body></html>"
+        mock_page.close.return_value = None
+        mock_launch.return_value = mock_browser
         
         scraper = Scraper()
         
@@ -63,7 +67,7 @@ class TestScraper:
             html, headers, status_code, redirections = asyncio.run(scraper.fetch_html("https://example.com"))
             
         assert "Dynamic Page" in html
-        assert mock_run.called
+        assert mock_launch.called
         
     def test_needs_puppeteer(self):
         """Test detection of JS-rendered pages"""
@@ -149,7 +153,7 @@ class TestScraper:
         assert len(result["h_tags"]["h2"]) == 1
         assert len(result["paragraphs"]) == 1
         assert len(result["images_without_alt"]) == 1
-        assert "/internal" in result["links"]["internal"]
+        assert "https://example.com/internal" in result["links"]["internal"]
         assert "https://external.com" in result["links"]["external"]
 
 
