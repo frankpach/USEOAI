@@ -394,7 +394,120 @@ class SEOAnalyzer:
         }
 
     async def _analyze_performance(self, url: str) -> Dict[str, Union[int, bool]]:
-        """Analyze page performance metrics using async HTTP client"""
+        """Analyze page performance metrics using dynamic resource counting with Playwright"""
+        try:
+            # Try dynamic analysis first
+            return await self._analyze_performance_dynamic(url)
+        except Exception as e:
+            logger.warning(f"Dynamic performance analysis failed: {e}, falling back to static analysis")
+            return await self._analyze_performance_static(url)
+
+    async def _analyze_performance_dynamic(self, url: str) -> Dict[str, Union[int, bool]]:
+        """Analyze page performance using dynamic resource counting with browser"""
+        start_time = time.time()
+        
+        try:
+            async with self.browser_pool.get_browser() as browser:
+                page = await browser.newPage()
+                
+                # Track all network requests
+                requests = []
+                
+                async def handle_request(request):
+                    """Handle each network request"""
+                    requests.append({
+                        'url': request.url,
+                        'resourceType': request.resourceType,
+                        'method': request.method
+                    })
+                    await request.continue_()
+                
+                # Enable request interception
+                await page.setRequestInterception(True)
+                page.on('request', handle_request)
+                
+                # Navigate to page and wait for network idle
+                await page.goto(url, {'waitUntil': 'networkidle0', 'timeout': self.config.BROWSER_TIMEOUT})
+                
+                # Calculate TTFB
+                ttfb_ms = int((time.time() - start_time) * 1000)
+                
+                # Get response for gzip check
+                response = await page.goto(url, {'waitUntil': 'domcontentloaded'})
+                gzip_enabled = 'gzip' in response.headers.get('content-encoding', '').lower()
+                
+                # Process requests to count resources
+                resource_stats = self._process_dynamic_requests(requests)
+                
+                # Check for lazy loading by examining the DOM
+                lazy_loaded_images = await page.evaluate('''
+                    () => {
+                        const images = document.querySelectorAll('img');
+                        return Array.from(images).some(img => img.loading === 'lazy');
+                    }
+                ''')
+                
+                await page.close()
+                
+                return {
+                    "ttfb_ms": ttfb_ms,
+                    "resource_count": resource_stats['total_count'],
+                    "gzip_enabled": gzip_enabled,
+                    "lazy_loaded_images": lazy_loaded_images,
+                    # Additional metrics available with dynamic analysis
+                    "resource_types": resource_stats['by_type'],
+                    "scripts_count": resource_stats['scripts'],
+                    "images_count": resource_stats['images'],
+                    "stylesheets_count": resource_stats['stylesheets'],
+                    "fonts_count": resource_stats['fonts'],
+                    "fetch_requests_count": resource_stats['fetch_requests'],
+                    "total_requests": len(requests)
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in dynamic performance analysis: {e}")
+            raise
+    
+    def _process_dynamic_requests(self, requests: List[Dict]) -> Dict[str, Union[int, Dict]]:
+        """Process captured network requests to generate resource statistics"""
+        resource_stats = {
+            'total_count': 0,
+            'scripts': 0,
+            'images': 0,
+            'stylesheets': 0,
+            'fonts': 0,
+            'fetch_requests': 0,
+            'by_type': {}
+        }
+        
+        for request in requests:
+            resource_type = request.get('resourceType', 'other')
+            
+            # Count by resource type
+            if resource_type not in resource_stats['by_type']:
+                resource_stats['by_type'][resource_type] = 0
+            resource_stats['by_type'][resource_type] += 1
+            
+            # Count specific resource types
+            if resource_type == 'script':
+                resource_stats['scripts'] += 1
+            elif resource_type == 'image':
+                resource_stats['images'] += 1
+            elif resource_type == 'stylesheet':
+                resource_stats['stylesheets'] += 1
+            elif resource_type == 'font':
+                resource_stats['fonts'] += 1
+            elif resource_type in ['fetch', 'xhr']:
+                resource_stats['fetch_requests'] += 1
+            
+            # Count as resource (exclude document and some other types)
+            if resource_type not in ['document', 'navigation']:
+                resource_stats['total_count'] += 1
+        
+        return resource_stats
+
+    async def _analyze_performance_static(self, url: str) -> Dict[str, Union[int, bool]]:
+        """Fallback static analysis using HTTP client (original implementation)"""
         start_time = time.time()
         
         try:
@@ -415,15 +528,13 @@ class SEOAnalyzer:
                     soup = BeautifulSoup(html_content, 'lxml')
                 
                 # Count resources (more accurate)
-                scripts = len(soup.find_all('script'))
+                all_scripts = soup.find_all('script')
+                scripts = len(all_scripts)
                 styles = len(soup.find_all('link', rel='stylesheet'))
                 images = len(soup.find_all('img'))
                 
-                # Count inline styles and scripts
+                # Count inline styles 
                 inline_styles = len(soup.find_all('style'))
-                # Fix: Use proper way to find inline scripts
-                inline_scripts = len([s for s in soup.find_all('script') if not s.get('src')])
-                scripts += inline_scripts
                 
                 resource_count = scripts + styles + images + inline_styles
                 
@@ -438,7 +549,15 @@ class SEOAnalyzer:
                     "ttfb_ms": ttfb_ms,
                     "resource_count": resource_count,
                     "gzip_enabled": gzip_enabled,
-                    "lazy_loaded_images": lazy_loaded_images
+                    "lazy_loaded_images": lazy_loaded_images,
+                    # Provide default values for new fields to maintain compatibility
+                    "resource_types": {"script": scripts, "stylesheet": styles, "image": images, "style": inline_styles},
+                    "scripts_count": scripts,
+                    "images_count": images,
+                    "stylesheets_count": styles,
+                    "fonts_count": 0,
+                    "fetch_requests_count": 0,
+                    "total_requests": 0
                 }
                 
         except Exception as e:
@@ -451,7 +570,15 @@ class SEOAnalyzer:
             "ttfb_ms": 999,
             "resource_count": 0,
             "gzip_enabled": False,
-            "lazy_loaded_images": False
+            "lazy_loaded_images": False,
+            # New fields for dynamic analysis
+            "resource_types": {},
+            "scripts_count": 0,
+            "images_count": 0,
+            "stylesheets_count": 0,
+            "fonts_count": 0,
+            "fetch_requests_count": 0,
+            "total_requests": 0
         }
     
     def _prepare_texts_for_semantic_analysis(self, parsed_data: Dict) -> List[str]:
