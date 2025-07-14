@@ -2,15 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
-
-# Import and include routers
-from app.api.analyzer import router as analyzer_router
-from app.api.batch_analyzer import router as batch_analyzer_router
-
-app.include_router(analyzer_router)
-app.include_router(batch_analyzer_router)
-
-
+from config.database import engine
+from models.database_models import Base
 
 # Load environment variables
 load_dotenv()
@@ -31,8 +24,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
 # Import and include routers
-from app.api.analyzer import router as analyzer_router
+from api.analyzer import router as analyzer_router
 app.include_router(analyzer_router)
 
 @app.get("/")
@@ -46,4 +42,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

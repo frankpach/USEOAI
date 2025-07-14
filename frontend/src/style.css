@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200;
+  }
+  
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply btn bg-white text-gray-700 border-gray-300 hover:bg-gray-50 focus:ring-primary-500;
+  }
+  
+  .btn-success {
+    @apply btn bg-success-600 text-white hover:bg-success-700 focus:ring-success-500;
+  }
+  
+  .btn-warning {
+    @apply btn bg-warning-600 text-white hover:bg-warning-700 focus:ring-warning-500;
+  }
+  
+  .btn-danger {
+    @apply btn bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+  }
+  
+  .card-header {
+    @apply border-b border-gray-200 pb-4 mb-4;
+  }
+  
+  .card-title {
+    @apply text-lg font-semibold text-gray-900;
+  }
+  
+  .form-input {
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  
+  .form-error {
+    @apply mt-1 text-sm text-danger-600;
+  }
+  
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply badge bg-success-100 text-success-800;
+  }
+  
+  .badge-warning {
+    @apply badge bg-warning-100 text-warning-800;
+  }
+  
+  .badge-danger {
+    @apply badge bg-danger-100 text-danger-800;
+  }
+  
+  .badge-info {
+    @apply badge bg-primary-100 text-primary-800;
+  }
+  
+  .loading-spinner {
+    @apply animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600;
+  }
+  
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity 0.3s ease;
+  }
+  
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+  
+  .slide-enter-active,
+  .slide-leave-active {
+    transition: all 0.3s ease;
+  }
+  
+  .slide-enter-from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  
+  .slide-leave-to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Animaciones personalizadas */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Estilos para el modo oscuro (futuro) */
+@media (prefers-color-scheme: dark) {
+  .dark {
+    @apply bg-gray-900 text-gray-100;
+  }
+  
+  .dark .card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .dark .form-input {
+    @apply bg-gray-700 border-gray-600 text-gray-100;
+  }
+} 

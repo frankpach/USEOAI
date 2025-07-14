@@ -20,6 +20,15 @@ class SemanticAnalysisResponse(BaseModel):
     detected_intent: str
     readability_level: str
     suggested_improvements: List[str]
+    # Nuevos campos estructurados del LLM
+    executive_summary: Optional[str] = None
+    technical_score: Optional[float] = None
+    onpage_score: Optional[float] = None
+    offpage_score: Optional[float] = None
+    overall_score: Optional[float] = None
+    issues: Optional[List[Dict[str, str]]] = None
+    recommendations: Optional[List[str]] = None
+    checklist: Optional[List[str]] = None
 
 
 class LLMProviderConfig(BaseModel):

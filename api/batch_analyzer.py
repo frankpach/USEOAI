@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 import logging
 from typing import List, Dict, Any, Optional
-from app.models.seo_models import AnalysisRequest
-from app.services.batch_analyzer import BatchAnalyzer
+from models.seo_models import AnalysisRequest
+from services.batch_analyzer import BatchAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
