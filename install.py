@@ -93,7 +93,7 @@ def create_env_file():
         return True
     
     env_content = """# API Keys (Obligatorio para funcionalidad completa)
-GOOGLE_API_KEY=AIzaSyAUjV6Bw9RaLD8bAQ9P5T7nBi3c6r7mxvQ
+GOOGLE_API_KEY=tu_api_key
 OPENAI_API_KEY=tu_api_key_de_openai
 ANTHROPIC_API_KEY=tu_api_key_de_anthropic
 
