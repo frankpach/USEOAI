@@ -1,9 +1,9 @@
 import asyncio
 import logging
 from typing import List, Dict, Any
-from app.services.scraper import Scraper
-from app.models.seo_models import AnalysisRequest, AnalysisResponse
-from app.services.seo_analyzer import SEOAnalyzer
+from services.scraper import Scraper
+from models.seo_models import AnalysisRequest, AnalysisResponse
+from services.seo_analyzer import SEOAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

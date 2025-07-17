@@ -1,0 +1,50 @@
+{
+  "images_without_alt": [
+    "https://deluxesmartfilm.com/wp-content/uploads/2024/01/Vidrio-1.jpg",
+    "https://deluxesmartfilm.com/wp-content/uploads/2024/01/Vidrio-2.jpg"
+  ],
+  "broken_links": [
+    "https://wa.link/7ox0vj",
+    "https://www.facebook.com/profile.php?id=100092194459957&mibextid=LQQJ4d"
+  ],
+  "issues": [
+    {
+      "title": "Estructura de encabezados deficiente",
+      "description": "La jerarquía de encabezados (H1-H4) es confusa y no refleja la estructura lógica del contenido.  Muchos H2 parecen ser subtítulos en lugar de temas principales.",
+      "priority": "high"
+    },
+    {
+      "title": "Falta de optimización de imágenes",
+      "description": "Se desconoce el número de imágenes sin texto alternativo (alt text), lo cual afecta a la accesibilidad y al SEO.",
+      "priority": "high"
+    },
+    {
+      "title": "Contenido poco optimizado para SEO",
+      "description": "El contenido, aunque informativo, carece de palabras clave relevantes para el posicionamiento de \"Servicios Profesionales\" en Miami.  Se necesita una investigación de palabras clave exhaustiva.",
+      "priority": "high"
+    },
+    {
+      "title": "Métricas de velocidad desconocidas",
+      "description": "Se necesita información sobre TTFB, tiempo de carga y tamaño de página para optimizar el rendimiento del sitio.",
+      "priority": "high"
+    },
+    {
+      "title": "Enlaces rotos",
+      "description": "La cantidad de enlaces rotos es desconocida y debe revisarse para asegurar una buena experiencia de usuario.",
+      "priority": "medium"
+    },
+    {
+      "title": "Poca presencia en redes sociales y enlaces externos",
+      "description": "Se desconoce la situación de los enlaces externos, crucial para el SEO off-page.  Se debe evaluar y mejorar la estrategia de enlaces.",
+      "priority": "medium"
+    }
+  ],
+  "llm_recommendations": [
+    "Realizar una auditoría SEO completa para identificar más problemas técnicos y de contenido.",
+    "Optimizar la estructura de encabezados para reflejar una jerarquía lógica y utilizar palabras clave relevantes.",
+    "Agregar texto alternativo (alt text) a todas las imágenes.",
+    "Optimizar las imágenes para mejorar la velocidad de carga.",
+    "Crear contenido de alta calidad optimizado para palabras clave relevantes.",
+    "Construir una estrategia de link building para conseguir enlaces de alta calidad."
+  ]
+}

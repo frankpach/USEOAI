@@ -1,0 +1,141 @@
+{
+  "id": "geo-analysis-001",
+  "company_name": "Restaurante El Buen Sabor",
+  "keywords": ["restaurante madrid", "comida española", "paella madrid"],
+  "location": "Madrid, España",
+  "latitude": 40.4168,
+  "longitude": -3.7038,
+  "local_radius_km": 10,
+  "geo_samples": 5,
+  "summary": "Análisis de posicionamiento local para Restaurante El Buen Sabor en Madrid. Se analizaron 3 palabras clave en 5 ubicaciones diferentes dentro de un radio de 10km.",
+  "keyword_rankings": [
+    {
+      "keyword": "restaurante madrid",
+      "location_id": "loc-001",
+      "average_position": 3,
+      "samples": [
+        {"position": 2, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 4, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 3, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "restaurante madrid",
+      "location_id": "loc-002",
+      "average_position": 7,
+      "samples": [
+        {"position": 6, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 8, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 7, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "restaurante madrid",
+      "location_id": "loc-003",
+      "average_position": 12,
+      "samples": [
+        {"position": 11, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 13, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 12, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "comida española",
+      "location_id": "loc-001",
+      "average_position": 5,
+      "samples": [
+        {"position": 4, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 6, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 5, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "comida española",
+      "location_id": "loc-002",
+      "average_position": 9,
+      "samples": [
+        {"position": 8, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 10, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 9, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "comida española",
+      "location_id": "loc-003",
+      "average_position": 15,
+      "samples": [
+        {"position": 14, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 16, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 15, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "paella madrid",
+      "location_id": "loc-001",
+      "average_position": 2,
+      "samples": [
+        {"position": 1, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 3, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 2, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "paella madrid",
+      "location_id": "loc-002",
+      "average_position": 6,
+      "samples": [
+        {"position": 5, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 7, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 6, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    },
+    {
+      "keyword": "paella madrid",
+      "location_id": "loc-003",
+      "average_position": 11,
+      "samples": [
+        {"position": 10, "timestamp": "2024-01-15T10:00:00Z"},
+        {"position": 12, "timestamp": "2024-01-15T10:30:00Z"},
+        {"position": 11, "timestamp": "2024-01-15T11:00:00Z"}
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "id": "loc-001",
+      "name": "Centro de Madrid",
+      "address": "Plaza Mayor, 1, 28012 Madrid",
+      "latitude": 40.4155,
+      "longitude": -3.7074
+    },
+    {
+      "id": "loc-002",
+      "name": "Salamanca",
+      "address": "Calle de Serrano, 1, 28001 Madrid",
+      "latitude": 40.4220,
+      "longitude": -3.6880
+    },
+    {
+      "id": "loc-003",
+      "name": "Chamberí",
+      "address": "Plaza de Chamberí, 1, 28010 Madrid",
+      "latitude": 40.4300,
+      "longitude": -3.7000
+    },
+    {
+      "id": "loc-004",
+      "name": "Retiro",
+      "address": "Calle de Alcalá, 1, 28014 Madrid",
+      "latitude": 40.4180,
+      "longitude": -3.6880
+    },
+    {
+      "id": "loc-005",
+      "name": "Moncloa",
+      "address": "Plaza de Moncloa, 1, 28008 Madrid",
+      "latitude": 40.4350,
+      "longitude": -3.7200
+    }
+  ],
+  "timestamp": "2024-01-15T12:00:00Z"
+} 
